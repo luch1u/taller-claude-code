@@ -18,6 +18,9 @@ npm start > /dev/null 2>&1 &
 sleep 3
 
 echo "💻 PASO 3: Iniciando Claude Code..."
+# El truco para saltarse el menú interactivo:
 export ANTHROPIC_BASE_URL="http://localhost:3000/v1"
+export CLAUDE_API_KEY="sk-ant-falsa-para-saltar-menu"
+
 cd ..
 claude
