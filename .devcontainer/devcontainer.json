@@ -1,8 +1,8 @@
 {
-  "name": "Taller Claude Code",
+  "name": "Taller Claude Code + Ollama",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bullseye",
   "features": {
     "ghcr.io/devcontainers/features/python:1": {}
   },
-  "postCreateCommand": "npm install -g @anthropic-ai/claude-code && cd free-claude-code && npm install"
+  "postCreateCommand": "curl -fsSL https://ollama.com/install.sh | sh && mv /usr/local/bin/ollama /usr/local/bin/ollama.real && cp /workspaces/taller-claude-code/ollama /usr/local/bin/ollama && chmod +x /usr/local/bin/ollama && curl -LsSf https://astral.sh/uv/install.sh | sh && export PATH=\"$HOME/.local/bin:$PATH\" && uv python install 3.14.0 && cd /workspaces/taller-claude-code/free-claude-code && uv sync && uv pip install -e . && npm install -g @anthropic-ai/claude-code"
 }

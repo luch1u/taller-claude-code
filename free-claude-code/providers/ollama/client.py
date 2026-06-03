@@ -1,39 +1,31 @@
-"""Ollama provider implementation."""
+"""Ollama provider implementation (OpenAI-compatible chat completions)."""
 
-import httpx
+from __future__ import annotations
 
-from providers.anthropic_messages import AnthropicMessagesTransport
+from typing import Any
+
 from providers.base import ProviderConfig
 from providers.defaults import OLLAMA_DEFAULT_BASE
-from providers.model_listing import extract_ollama_model_ids
+from providers.openai_compat import OpenAIChatTransport
+
+from .request import build_request_body
 
 
-class OllamaProvider(AnthropicMessagesTransport):
-    """Ollama provider using native Anthropic Messages API."""
+class OllamaProvider(OpenAIChatTransport):
+    """Ollama provider using OpenAI-compatible chat completions."""
 
     def __init__(self, config: ProviderConfig):
         super().__init__(
             config,
             provider_name="OLLAMA",
-            default_base_url=OLLAMA_DEFAULT_BASE,
+            base_url=config.base_url or OLLAMA_DEFAULT_BASE,
+            api_key=config.api_key,
         )
-        self._api_key = config.api_key or "ollama"
 
-    async def _send_stream_request(self, body: dict) -> httpx.Response:
-        """Create a streaming native Anthropic messages response."""
-        request = self._client.build_request(
-            "POST",
-            "/v1/messages",
-            json=body,
-            headers=self._request_headers(),
+    def _build_request_body(
+        self, request: Any, thinking_enabled: bool | None = None
+    ) -> dict:
+        return build_request_body(
+            request,
+            thinking_enabled=self._is_thinking_enabled(request, thinking_enabled),
         )
-        return await self._client.send(request, stream=True)
-
-    async def _send_model_list_request(self) -> httpx.Response:
-        """Query Ollama's native local model-list endpoint."""
-        return await self._client.get(f"{self._base_url}/api/tags")
-
-    def _extract_model_ids_from_model_list_payload(
-        self, payload: object
-    ) -> frozenset[str]:
-        return extract_ollama_model_ids(payload, provider_name=self._provider_name)

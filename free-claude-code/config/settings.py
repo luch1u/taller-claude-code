@@ -390,11 +390,8 @@ class Settings(BaseSettings):
     @field_validator("ollama_base_url")
     @classmethod
     def validate_ollama_base_url(cls, v: str) -> str:
-        if v.rstrip("/").endswith("/v1"):
-            raise ValueError(
-                "OLLAMA_BASE_URL must be the Ollama root URL for native Anthropic "
-                "messages, e.g. http://localhost:11434 (without /v1)."
-            )
+        # Relaxed validator: Ollama Cloud uses OpenAI-compatible /v1 endpoints,
+        # while local Ollama uses the root URL. Allow both.
         return v
 
     @field_validator("model", "model_opus", "model_sonnet", "model_haiku")

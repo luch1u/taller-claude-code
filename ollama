@@ -1,0 +1,80 @@
+#!/bin/bash
+
+OLLAMA_REAL="/usr/local/bin/ollama.real"
+
+# ---------------------------------------------------------------------------
+# Comando: ollama launch claude --model <modelo>
+# ---------------------------------------------------------------------------
+if [ "$1" == "launch" ] && [ "$2" == "claude" ]; then
+    shift 2
+    MODEL=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --model)
+                MODEL="$2"
+                shift 2
+                ;;
+            *)
+                shift
+                ;;
+        esac
+    done
+
+    if [ -z "$MODEL" ]; then
+        echo "❌ Error: Debes especificar --model <modelo>"
+        echo "   Ejemplo: ollama launch claude --model minimax-m2.5:cloud"
+        exit 1
+    fi
+
+    # -----------------------------------------------------------------------
+    # Buscar API Key de Ollama
+    # -----------------------------------------------------------------------
+    OLLAMA_KEY=""
+    if command -v jq >/dev/null 2>&1 && [ -f "$HOME/.ollama/config.json" ]; then
+        OLLAMA_KEY=$(jq -r '.token // empty' "$HOME/.ollama/config.json" 2>/dev/null)
+    fi
+
+    if [ -z "$OLLAMA_KEY" ]; then
+        echo "🔑 No se encontró token de Ollama."
+        echo "   Por favor, pega tu API Key de Ollama.com y presiona [ENTER]:"
+        read -s OLLAMA_KEY
+        echo ""
+    fi
+
+    if [ -z "$OLLAMA_KEY" ]; then
+        echo "❌ Error: Se requiere una API Key para Ollama."
+        exit 1
+    fi
+
+    WORKSPACE_DIR="/workspaces/taller-claude-code"
+    PROXY_DIR="$WORKSPACE_DIR/free-claude-code"
+
+    echo "⚙️  Configurando proxy para Ollama Cloud (modelo: $MODEL)..."
+
+    cat <<EOF > "$PROXY_DIR/.env"
+MODEL=ollama/$MODEL
+OLLAMA_BASE_URL=https://api.ollama.com/v1
+ANTHROPIC_AUTH_TOKEN=$OLLAMA_KEY
+EOF
+
+    echo "🚀 Iniciando proxy Free Claude Code..."
+    cd "$PROXY_DIR"
+    # Matar cualquier instancia previa del proxy
+    pkill -f "fcc-server" 2>/dev/null || true
+    sleep 1
+    fcc-server > /dev/null 2>&1 &
+    sleep 5
+
+    echo "💻 Iniciando Claude Code..."
+    cd "$WORKSPACE_DIR"
+    export ANTHROPIC_BASE_URL="http://localhost:8082/v1"
+    export CLAUDE_API_KEY="sk-ant-falsa-para-saltar-menu"
+    claude
+
+# ---------------------------------------------------------------------------
+# Comando: ollama signin (o cualquier otro comando nativo)
+# ---------------------------------------------------------------------------
+else
+    "$OLLAMA_REAL" "$@"
+fi
